@@ -233,10 +233,12 @@ class AzureDevOpsClient:
         )
 
         if resp.status_code in (401, 403):
-            raise AzureDevOpsError(
-                resp.status_code,
-                "Authentication failed. Check your PAT and its permissions.",
-            )
+            error_msg = "Authentication failed. Check your PAT and its permissions."
+            try:
+                error_msg = resp.json().get("message", error_msg)
+            except (ValueError, KeyError):
+                pass
+            raise AzureDevOpsError(resp.status_code, error_msg)
 
         resp.raise_for_status()
         work_items = resp.json().get("workItems", [])
@@ -314,10 +316,12 @@ class AzureDevOpsClient:
         )
 
         if resp.status_code in (401, 403):
-            raise AzureDevOpsError(
-                resp.status_code,
-                "Authentication failed. Check your PAT and its permissions.",
-            )
+            error_msg = "Authentication failed. Check your PAT and its permissions."
+            try:
+                error_msg = resp.json().get("message", error_msg)
+            except (ValueError, KeyError):
+                pass
+            raise AzureDevOpsError(resp.status_code, error_msg)
 
         if resp.status_code >= 400:
             error_msg = resp.text

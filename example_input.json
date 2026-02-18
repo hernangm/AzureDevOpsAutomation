@@ -5,7 +5,7 @@
     "description": "Migrate legacy services to cloud-native architecture",
     "workItemTypes": {
       "epic": "Epic",
-      "feature": "Feature",
+      "feature": "Issue",
       "task": "Task"
     }
   },
@@ -19,9 +19,8 @@
           "id": "FEAT-CONTAINERS",
           "title": "Containerize API Services",
           "description": "Dockerize all REST API microservices",
-          "ownerUserIds": ["jane@contoso.com", "bob@contoso.com"],
+          "ownerUserIds": ["hernanmarano@consilientivh.com"],
           "fields": {
-            "System.AreaPath": "Platform\\Backend",
             "Microsoft.VSTS.Common.Priority": 1
           },
           "tasks": [
@@ -41,7 +40,7 @@
           "id": "FEAT-CICD",
           "title": "Set up CI/CD Pipelines",
           "description": "Create YAML pipelines for all containerized services",
-          "ownerUserIds": ["alice@contoso.com"],
+          "ownerUserIds": ["hernanmarano@consilientivh.com"],
           "tasks": [
             {
               "id": "TASK-PIPE-AUTH",
