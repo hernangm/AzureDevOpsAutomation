@@ -1,4 +1,5 @@
 {
+  "$schema": "./project_plan_schema.json",
   "metadata": {
     "project": "Platform Modernization",
     "version": "1.0",

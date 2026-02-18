@@ -5,6 +5,7 @@
   "required": ["metadata", "epics"],
   "additionalProperties": false,
   "properties": {
+    "$schema": { "type": "string" },
     "metadata": {
       "type": "object",
       "required": ["project", "version", "workItemTypes"],
@@ -16,12 +17,28 @@
         "assignmentStrategy": { "type": "string", "enum": ["feature-owner"] },
         "workItemTypes": {
           "type": "object",
+          "description": "Azure DevOps work item type names. Must match your project's process template: Agile (Epic/Feature/User Story), Scrum (Epic/Feature/Product Backlog Item), Basic (Epic/Issue/Task), CMMI (Epic/Feature/Requirement).",
           "required": ["epic", "feature", "task"],
           "additionalProperties": false,
           "properties": {
-            "epic": { "type": "string", "minLength": 1 },
-            "feature": { "type": "string", "minLength": 1 },
-            "task": { "type": "string", "minLength": 1 }
+            "epic": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Level-1 work item type. Usually 'Epic' across all process templates.",
+              "examples": ["Epic"]
+            },
+            "feature": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Level-2 work item type. Varies by process: 'Feature' (Agile/Scrum/CMMI), 'Issue' (Basic).",
+              "examples": ["Feature", "Issue"]
+            },
+            "task": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Level-3 work item type. Varies by process: 'Task' (Agile/Basic), 'Product Backlog Item' (Scrum), 'Requirement' (CMMI), 'User Story' (Agile).",
+              "examples": ["Task", "Product Backlog Item", "User Story", "Requirement"]
+            }
           }
         }
       }
