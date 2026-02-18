@@ -41,6 +41,11 @@
         "id": { "type": "string", "pattern": "^[A-Z0-9-]+$" },
         "title": { "type": "string", "minLength": 1 },
         "description": { "type": "string" },
+        "ownerUserIds": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
         "fields": { "$ref": "#/$defs/customFields" },
         "features": {
           "type": "array",
@@ -79,6 +84,11 @@
         "title": { "type": "string", "minLength": 1 },
         "description": { "type": "string" },
         "assignedTo": { "type": "string", "minLength": 1 },
+        "ownerUserIds": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
         "fields": { "$ref": "#/$defs/customFields" }
       }
     },

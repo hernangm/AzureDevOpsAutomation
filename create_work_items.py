@@ -422,6 +422,7 @@ def process_epics(
         epic_title = epic["title"]
         epic_desc = epic.get("description")
         epic_fields = epic.get("fields")
+        epic_owner = epic["ownerUserIds"][0] if "ownerUserIds" in epic else None
 
         logger.info("%s: [%s] %s", wit["epic"], epic_id_local, epic_title)
 
@@ -441,12 +442,13 @@ def process_epics(
         elif dry_run:
             dry_counter += 1
             summary.record_dry_run(
-                epic_id_local, epic_title, wit["epic"], None, None
+                epic_id_local, epic_title, wit["epic"], epic_owner, None
             )
         else:
             try:
                 result = client.create_work_item(
                     wit["epic"], epic_title, description=epic_desc,
+                    assigned_to=epic_owner,
                     custom_fields=epic_fields,
                 )
                 epic_ado_id = result["id"]
@@ -517,7 +519,11 @@ def process_epics(
                 task_title = task["title"]
                 task_desc = task.get("description")
                 task_fields = task.get("fields")
-                task_owner = owner  # feature-owner strategy: always inherit
+                task_owner = (
+                    task["ownerUserIds"][0]
+                    if "ownerUserIds" in task
+                    else owner  # feature-owner strategy: inherit from feature
+                )
 
                 logger.info("    %s: [%s] %s", wit["task"], task_id_local, task_title)
 

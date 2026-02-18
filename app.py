@@ -30,19 +30,37 @@ def _get_config() -> dict:
     )
 
 
-# ── File upload ─────────────────────────────────────────────────────────────
+# ── Input ──────────────────────────────────────────────────────────────────
 
-uploaded = st.file_uploader("Upload a project plan JSON file", type=["json"])
+tab_upload, tab_paste = st.tabs(["Upload file", "Paste JSON"])
 
-if not uploaded:
-    st.info("Upload a `.json` project plan to get started.")
-    st.stop()
+with tab_upload:
+    uploaded = st.file_uploader("Upload a project plan JSON file", type=["json"])
 
-# Parse JSON
-try:
-    data = json.load(uploaded)
-except json.JSONDecodeError as exc:
-    st.error(f"Invalid JSON: {exc}")
+with tab_paste:
+    json_text = st.text_area(
+        "Paste your project plan JSON",
+        height=300,
+        placeholder='{"metadata": {...}, "epics": [...]}',
+    )
+
+# Determine which input source to use
+data = None
+if uploaded:
+    try:
+        data = json.load(uploaded)
+    except json.JSONDecodeError as exc:
+        st.error(f"Invalid JSON in uploaded file: {exc}")
+        st.stop()
+elif json_text.strip():
+    try:
+        data = json.loads(json_text)
+    except json.JSONDecodeError as exc:
+        st.error(f"Invalid JSON: {exc}")
+        st.stop()
+
+if data is None:
+    st.info("Upload a `.json` file or paste JSON to get started.")
     st.stop()
 
 # Validate
@@ -68,6 +86,8 @@ st.markdown(f"**{epic_count}** {wit['epic']}(s), **{feat_count}** {wit['feature'
 
 for epic in data["epics"]:
     with st.expander(f"{wit['epic']}: {epic['title']}", expanded=True):
+        if epic.get("ownerUserIds"):
+            st.markdown(f"*Owner:* `{epic['ownerUserIds'][0]}`")
         if epic.get("description"):
             st.caption(epic["description"])
         for feature in epic["features"]:

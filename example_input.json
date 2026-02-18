@@ -14,6 +14,7 @@
       "id": "EPIC-PLATFORM",
       "title": "Platform Modernization",
       "description": "Migrate legacy services to cloud-native architecture",
+      "ownerUserIds": ["hernanmarano@consilientivh.com"],
       "features": [
         {
           "id": "FEAT-CONTAINERS",
@@ -49,10 +50,7 @@
             },
             {
               "id": "TASK-PIPE-PAY",
-              "title": "Create YAML pipeline for payment-service",
-              "fields": {
-                "System.Tags": "cicd; pipeline"
-              }
+              "title": "Create YAML pipeline for payment-service"
             }
           ]
         }
