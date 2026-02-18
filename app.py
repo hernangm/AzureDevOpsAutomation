@@ -10,6 +10,7 @@ from create_work_items import (
     AzureDevOpsError,
     Summary,
     build_config,
+    get_work_item_types,
     process_epics,
     validate_input,
 )
@@ -55,6 +56,7 @@ if errors:
 # ── Preview tree ────────────────────────────────────────────────────────────
 
 meta = data["metadata"]
+wit = get_work_item_types(meta)
 st.subheader(f"{meta['project']} v{meta['version']}")
 if meta.get("description"):
     st.caption(meta["description"])
@@ -62,15 +64,15 @@ if meta.get("description"):
 epic_count = len(data["epics"])
 feat_count = sum(len(e["features"]) for e in data["epics"])
 task_count = sum(len(t["tasks"]) for e in data["epics"] for t in e["features"])
-st.markdown(f"**{epic_count}** epic(s), **{feat_count}** feature(s), **{task_count}** task(s)")
+st.markdown(f"**{epic_count}** {wit['epic']}(s), **{feat_count}** {wit['feature']}(s), **{task_count}** {wit['task']}(s)")
 
 for epic in data["epics"]:
-    with st.expander(f"Epic: {epic['title']}", expanded=True):
+    with st.expander(f"{wit['epic']}: {epic['title']}", expanded=True):
         if epic.get("description"):
             st.caption(epic["description"])
         for feature in epic["features"]:
             owner = feature["ownerUserIds"][0]
-            st.markdown(f"**Feature:** {feature['title']}  \n*Owner:* `{owner}`")
+            st.markdown(f"**{wit['feature']}:** {feature['title']}  \n*Owner:* `{owner}`")
             if feature.get("description"):
                 st.caption(feature["description"])
             for task in feature["tasks"]:
@@ -107,6 +109,7 @@ if dry_run:
         epics=data["epics"],
         dry_run=True,
         skip_duplicate_check=True,
+        wit=wit,
     )
     st.subheader("Dry Run Results")
     _show_summary(summary)
@@ -128,6 +131,7 @@ if create:
                 epics=data["epics"],
                 dry_run=False,
                 skip_duplicate_check=False,
+                wit=wit,
             )
         except AzureDevOpsError as exc:
             st.error(f"Azure DevOps API error: {exc}")

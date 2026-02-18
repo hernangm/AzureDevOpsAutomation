@@ -2,7 +2,12 @@
   "metadata": {
     "project": "Platform Modernization",
     "version": "1.0",
-    "description": "Migrate legacy services to cloud-native architecture"
+    "description": "Migrate legacy services to cloud-native architecture",
+    "workItemTypes": {
+      "epic": "Epic",
+      "feature": "Feature",
+      "task": "Task"
+    }
   },
   "epics": [
     {

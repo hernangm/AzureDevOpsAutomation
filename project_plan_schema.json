@@ -7,13 +7,23 @@
   "properties": {
     "metadata": {
       "type": "object",
-      "required": ["project", "version"],
+      "required": ["project", "version", "workItemTypes"],
       "additionalProperties": false,
       "properties": {
         "project": { "type": "string", "minLength": 1 },
         "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+$" },
         "description": { "type": "string" },
-        "assignmentStrategy": { "type": "string", "enum": ["feature-owner"] }
+        "assignmentStrategy": { "type": "string", "enum": ["feature-owner"] },
+        "workItemTypes": {
+          "type": "object",
+          "required": ["epic", "feature", "task"],
+          "additionalProperties": false,
+          "properties": {
+            "epic": { "type": "string", "minLength": 1 },
+            "feature": { "type": "string", "minLength": 1 },
+            "task": { "type": "string", "minLength": 1 }
+          }
+        }
       }
     },
     "epics": {

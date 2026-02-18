@@ -68,6 +68,20 @@ def _load_schema(schema_path: str) -> dict:
         return json.load(f)
 
 
+def get_work_item_types(metadata: dict) -> dict[str, str]:
+    """Extract work item type names from metadata.
+
+    Returns a dict with keys 'epic', 'feature', 'task' mapped to the
+    Azure DevOps work item type names to use.
+    """
+    types = metadata["workItemTypes"]
+    return {
+        "epic": types["epic"],
+        "feature": types["feature"],
+        "task": types["task"],
+    }
+
+
 def validate_input(data: dict, schema_path: str) -> list[str]:
     """Validate parsed JSON data against the schema.
 
@@ -81,21 +95,22 @@ def validate_input(data: dict, schema_path: str) -> list[str]:
         return [f"Schema validation failed: {exc.message}"]
 
     errors: list[str] = []
+    wit = get_work_item_types(data["metadata"])
 
     # Check for duplicate IDs across the entire plan
     seen_ids: dict[str, str] = {}
     for epic in data["epics"]:
         if epic["id"] in seen_ids:
             errors.append(f"Duplicate ID: {epic['id']}")
-        seen_ids[epic["id"]] = "Epic"
+        seen_ids[epic["id"]] = wit["epic"]
         for feature in epic["features"]:
             if feature["id"] in seen_ids:
                 errors.append(f"Duplicate ID: {feature['id']}")
-            seen_ids[feature["id"]] = "Feature"
+            seen_ids[feature["id"]] = wit["feature"]
             for task in feature["tasks"]:
                 if task["id"] in seen_ids:
                     errors.append(f"Duplicate ID: {task['id']}")
-                seen_ids[task["id"]] = "Task"
+                seen_ids[task["id"]] = wit["task"]
 
     # Enforce assignment strategy contract
     strategy = data["metadata"].get("assignmentStrategy", "feature-owner")
@@ -387,8 +402,14 @@ def process_epics(
     epics: list[dict],
     dry_run: bool,
     skip_duplicate_check: bool,
+    wit: dict[str, str],
 ) -> Summary:
-    """Process the full Epic -> Feature -> Task tree."""
+    """Process the full Epic -> Feature -> Task tree.
+
+    ``wit`` maps logical roles ('epic', 'feature', 'task') to the
+    Azure DevOps work item type names to use.
+    """
+
     summary = Summary()
     dry_counter = 0
 
@@ -398,14 +419,14 @@ def process_epics(
         epic_desc = epic.get("description")
         epic_fields = epic.get("fields")
 
-        logger.info("Epic: [%s] %s", epic_id_local, epic_title)
+        logger.info("%s: [%s] %s", wit["epic"], epic_id_local, epic_title)
 
         epic_ado_id = None
 
         # Duplicate check
         if not skip_duplicate_check and not dry_run:
             try:
-                epic_ado_id = client.find_existing_work_item(epic_title, "Epic")
+                epic_ado_id = client.find_existing_work_item(epic_title, wit["epic"])
             except AzureDevOpsError as exc:
                 if exc.status_code in (401, 403):
                     raise
@@ -416,12 +437,12 @@ def process_epics(
         elif dry_run:
             dry_counter += 1
             summary.record_dry_run(
-                epic_id_local, epic_title, "Epic", None, None
+                epic_id_local, epic_title, wit["epic"], None, None
             )
         else:
             try:
                 result = client.create_work_item(
-                    "Epic", epic_title, description=epic_desc,
+                    wit["epic"], epic_title, description=epic_desc,
                     custom_fields=epic_fields,
                 )
                 epic_ado_id = result["id"]
@@ -441,14 +462,14 @@ def process_epics(
             feat_fields = feature.get("fields")
             owner = feature["ownerUserIds"][0]  # feature-owner: first email
 
-            logger.info("  Feature: [%s] %s", feat_id_local, feat_title)
+            logger.info("  %s: [%s] %s", wit["feature"], feat_id_local, feat_title)
 
             feat_ado_id = None
 
             if not skip_duplicate_check and not dry_run:
                 try:
                     feat_ado_id = client.find_existing_work_item(
-                        feat_title, "Feature"
+                        feat_title, wit["feature"]
                     )
                 except (AzureDevOpsError, requests.RequestException) as exc:
                     summary.record_failed(feat_id_local, feat_title, str(exc))
@@ -461,14 +482,14 @@ def process_epics(
                 summary.record_dry_run(
                     feat_id_local,
                     feat_title,
-                    "Feature",
+                    wit["feature"],
                     owner,
-                    f"Epic [{epic_id_local}]",
+                    f"{wit['epic']} [{epic_id_local}]",
                 )
             else:
                 try:
                     result = client.create_work_item(
-                        "Feature",
+                        wit["feature"],
                         feat_title,
                         description=feat_desc,
                         assigned_to=owner,
@@ -494,14 +515,14 @@ def process_epics(
                 task_fields = task.get("fields")
                 task_owner = owner  # feature-owner strategy: always inherit
 
-                logger.info("    Task: [%s] %s", task_id_local, task_title)
+                logger.info("    %s: [%s] %s", wit["task"], task_id_local, task_title)
 
                 task_ado_id = None
 
                 if not skip_duplicate_check and not dry_run:
                     try:
                         task_ado_id = client.find_existing_work_item(
-                            task_title, "Task"
+                            task_title, wit["task"]
                         )
                     except (AzureDevOpsError, requests.RequestException) as exc:
                         summary.record_failed(task_id_local, task_title, str(exc))
@@ -516,14 +537,14 @@ def process_epics(
                     summary.record_dry_run(
                         task_id_local,
                         task_title,
-                        "Task",
+                        wit["task"],
                         task_owner,
-                        f"Feature [{feat_id_local}]",
+                        f"{wit['feature']} [{feat_id_local}]",
                     )
                 else:
                     try:
                         result = client.create_work_item(
-                            "Task",
+                            wit["task"],
                             task_title,
                             description=task_desc,
                             assigned_to=task_owner,
@@ -635,12 +656,14 @@ def main():
         )
 
     # Process
+    wit = get_work_item_types(data["metadata"])
     summary = process_epics(
         client,
         config,
         data["epics"],
         dry_run=args.dry_run,
         skip_duplicate_check=args.no_duplicate_check,
+        wit=wit,
     )
 
     summary.print_report()
