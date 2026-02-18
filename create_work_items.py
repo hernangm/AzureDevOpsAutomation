@@ -31,35 +31,31 @@ SCHEMA_PATH = "project_plan_schema.json"
 # --------------------------------------------------------------------------- #
 
 
+def build_config(org_url: str, project: str, pat: str) -> dict:
+    """Build and validate a config dict from raw values.
+
+    Raises ValueError if any required value is empty.
+    """
+    values = {"org_url": org_url.strip(), "project": project.strip(), "pat": pat.strip()}
+    missing = [k for k, v in values.items() if not v]
+    if missing:
+        raise ValueError(f"Missing required configuration: {', '.join(missing)}")
+    values["org_url"] = values["org_url"].rstrip("/")
+    return values
+
+
 def load_config(env_file: str) -> dict:
     """Load and validate configuration from a .env file."""
     values = dotenv_values(env_file)
-
-    required = {
-        "AZURE_DEVOPS_ORG_URL": "Organization URL (e.g. https://dev.azure.com/myorg)",
-        "AZURE_DEVOPS_PROJECT": "Project name",
-        "AZURE_DEVOPS_PAT": "Personal Access Token",
-    }
-
-    missing = [
-        f"  {key} — {desc}"
-        for key, desc in required.items()
-        if not values.get(key, "").strip()
-    ]
-
-    if missing:
-        logger.error(
-            "Missing required configuration in %s:\n%s",
-            env_file,
-            "\n".join(missing),
+    try:
+        return build_config(
+            values.get("AZURE_DEVOPS_ORG_URL", ""),
+            values.get("AZURE_DEVOPS_PROJECT", ""),
+            values.get("AZURE_DEVOPS_PAT", ""),
         )
+    except ValueError as exc:
+        logger.error("Configuration error in %s: %s", env_file, exc)
         sys.exit(2)
-
-    return {
-        "org_url": values["AZURE_DEVOPS_ORG_URL"].rstrip("/"),
-        "project": values["AZURE_DEVOPS_PROJECT"].strip(),
-        "pat": values["AZURE_DEVOPS_PAT"].strip(),
-    }
 
 
 # --------------------------------------------------------------------------- #
@@ -68,40 +64,26 @@ def load_config(env_file: str) -> dict:
 
 
 def _load_schema(schema_path: str) -> dict:
-    try:
-        with open(schema_path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        logger.error("Schema file not found: %s", schema_path)
-        sys.exit(2)
-    except json.JSONDecodeError as exc:
-        logger.error("Invalid JSON in schema file %s: %s", schema_path, exc)
-        sys.exit(2)
+    with open(schema_path, "r", encoding="utf-8") as f:
+        return json.load(f)
 
 
-def load_and_validate_input(filepath: str, schema_path: str) -> dict:
-    """Load JSON input file and validate against the schema."""
-    try:
-        with open(filepath, "r", encoding="utf-8") as f:
-            data = json.load(f)
-    except FileNotFoundError:
-        logger.error("Input file not found: %s", filepath)
-        sys.exit(2)
-    except json.JSONDecodeError as exc:
-        logger.error("Invalid JSON in %s: %s", filepath, exc)
-        sys.exit(2)
+def validate_input(data: dict, schema_path: str) -> list[str]:
+    """Validate parsed JSON data against the schema.
 
+    Returns a list of error strings. Empty list means the data is valid.
+    """
     schema = _load_schema(schema_path)
 
     try:
         validate(instance=data, schema=schema)
     except ValidationError as exc:
-        logger.error("Schema validation failed:\n  %s", exc.message)
-        sys.exit(2)
+        return [f"Schema validation failed: {exc.message}"]
+
+    errors: list[str] = []
 
     # Check for duplicate IDs across the entire plan
     seen_ids: dict[str, str] = {}
-    errors: list[str] = []
     for epic in data["epics"]:
         if epic["id"] in seen_ids:
             errors.append(f"Duplicate ID: {epic['id']}")
@@ -127,6 +109,22 @@ def load_and_validate_input(filepath: str, schema_path: str) -> dict:
                             f'when assignmentStrategy is "feature-owner"'
                         )
 
+    return errors
+
+
+def load_and_validate_input(filepath: str, schema_path: str) -> dict:
+    """Load JSON input file and validate against the schema (CLI entry point)."""
+    try:
+        with open(filepath, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        logger.error("Input file not found: %s", filepath)
+        sys.exit(2)
+    except json.JSONDecodeError as exc:
+        logger.error("Invalid JSON in %s: %s", filepath, exc)
+        sys.exit(2)
+
+    errors = validate_input(data, schema_path)
     if errors:
         logger.error("Input validation errors:\n  %s", "\n  ".join(errors))
         sys.exit(2)
@@ -410,8 +408,8 @@ def process_epics(
                 epic_ado_id = client.find_existing_work_item(epic_title, "Epic")
             except AzureDevOpsError as exc:
                 if exc.status_code in (401, 403):
-                    logger.error("Authentication failed: %s", exc.message)
-                    sys.exit(1)
+                    raise
+                summary.record_failed(epic_id_local, epic_title, str(exc))
 
         if epic_ado_id is not None:
             summary.record_skipped(epic_id_local, epic_title, epic_ado_id)
