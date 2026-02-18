@@ -1,0 +1,58 @@
+{
+  "metadata": {
+    "project": "Platform Modernization",
+    "version": "1.0",
+    "description": "Migrate legacy services to cloud-native architecture"
+  },
+  "epics": [
+    {
+      "id": "EPIC-PLATFORM",
+      "title": "Platform Modernization",
+      "description": "Migrate legacy services to cloud-native architecture",
+      "features": [
+        {
+          "id": "FEAT-CONTAINERS",
+          "title": "Containerize API Services",
+          "description": "Dockerize all REST API microservices",
+          "ownerUserIds": ["jane@contoso.com", "bob@contoso.com"],
+          "fields": {
+            "System.AreaPath": "Platform\\Backend",
+            "Microsoft.VSTS.Common.Priority": 1
+          },
+          "tasks": [
+            {
+              "id": "TASK-DOCKER-AUTH",
+              "title": "Write Dockerfile for auth-service",
+              "description": "Create multi-stage Dockerfile with build and runtime stages"
+            },
+            {
+              "id": "TASK-DOCKER-PAY",
+              "title": "Write Dockerfile for payment-service",
+              "description": "Create multi-stage Dockerfile for the payment microservice"
+            }
+          ]
+        },
+        {
+          "id": "FEAT-CICD",
+          "title": "Set up CI/CD Pipelines",
+          "description": "Create YAML pipelines for all containerized services",
+          "ownerUserIds": ["alice@contoso.com"],
+          "tasks": [
+            {
+              "id": "TASK-PIPE-AUTH",
+              "title": "Create YAML pipeline for auth-service",
+              "description": "Build, test, and deploy pipeline for auth-service container"
+            },
+            {
+              "id": "TASK-PIPE-PAY",
+              "title": "Create YAML pipeline for payment-service",
+              "fields": {
+                "System.Tags": "cicd; pipeline"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
