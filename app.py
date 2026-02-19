@@ -80,9 +80,9 @@ if meta.get("description"):
     st.caption(meta["description"])
 
 epic_count = len(data["epics"])
-feat_count = sum(len(e["features"]) for e in data["epics"])
-task_count = sum(len(t["tasks"]) for e in data["epics"] for t in e["features"])
-st.markdown(f"**{epic_count}** {wit['epic']}(s), **{feat_count}** {wit['feature']}(s), **{task_count}** {wit['task']}(s)")
+issue_count = sum(len(e["issues"]) for e in data["epics"])
+task_count = sum(len(t["tasks"]) for e in data["epics"] for t in e["issues"])
+st.markdown(f"**{epic_count}** {wit['epic']}(s), **{issue_count}** {wit['issue']}(s), **{task_count}** {wit['task']}(s)")
 
 for epic in data["epics"]:
     with st.expander(f"{wit['epic']}: {epic['title']}", expanded=True):
@@ -90,12 +90,12 @@ for epic in data["epics"]:
             st.markdown(f"*Owner:* `{epic['ownerUserIds'][0]}`")
         if epic.get("description"):
             st.caption(epic["description"])
-        for feature in epic["features"]:
-            owner = feature["ownerUserIds"][0]
-            st.markdown(f"**{wit['feature']}:** {feature['title']}  \n*Owner:* `{owner}`")
-            if feature.get("description"):
-                st.caption(feature["description"])
-            for task in feature["tasks"]:
+        for issue in epic["issues"]:
+            owner = issue["ownerUserIds"][0]
+            st.markdown(f"**{wit['issue']}:** {issue['title']}  \n*Owner:* `{owner}`")
+            if issue.get("description"):
+                st.caption(issue["description"])
+            for task in issue["tasks"]:
                 st.markdown(f"- {task['title']}")
 
 st.divider()

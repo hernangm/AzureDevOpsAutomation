@@ -14,11 +14,11 @@
         "project": { "type": "string", "minLength": 1 },
         "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+$" },
         "description": { "type": "string" },
-        "assignmentStrategy": { "type": "string", "enum": ["feature-owner"] },
+        "assignmentStrategy": { "type": "string", "enum": ["issue-owner"] },
         "workItemTypes": {
           "type": "object",
-          "description": "Azure DevOps work item type names. Must match your project's process template: Agile (Epic/Feature/User Story), Scrum (Epic/Feature/Product Backlog Item), Basic (Epic/Issue/Task), CMMI (Epic/Feature/Requirement).",
-          "required": ["epic", "feature", "task"],
+          "description": "Azure DevOps work item type names. Must match your project's process template: Basic (Epic/Issue/Task), Agile (Epic/Feature/User Story), Scrum (Epic/Feature/Product Backlog Item), CMMI (Epic/Feature/Requirement).",
+          "required": ["epic", "issue", "task"],
           "additionalProperties": false,
           "properties": {
             "epic": {
@@ -27,11 +27,11 @@
               "description": "Level-1 work item type. Usually 'Epic' across all process templates.",
               "examples": ["Epic"]
             },
-            "feature": {
+            "issue": {
               "type": "string",
               "minLength": 1,
-              "description": "Level-2 work item type. Varies by process: 'Feature' (Agile/Scrum/CMMI), 'Issue' (Basic).",
-              "examples": ["Feature", "Issue"]
+              "description": "Level-2 work item type. Varies by process: 'Issue' (Basic), 'Feature' (Agile/Scrum/CMMI).",
+              "examples": ["Issue", "Feature"]
             },
             "task": {
               "type": "string",
@@ -52,7 +52,7 @@
   "$defs": {
     "epic": {
       "type": "object",
-      "required": ["id", "title", "features"],
+      "required": ["id", "title", "issues"],
       "additionalProperties": false,
       "properties": {
         "id": { "type": "string", "pattern": "^[A-Z0-9-]+$" },
@@ -64,16 +64,16 @@
           "items": { "type": "string", "minLength": 1 }
         },
         "fields": { "$ref": "#/$defs/customFields" },
-        "features": {
+        "issues": {
           "type": "array",
           "minItems": 1,
-          "items": { "$ref": "#/$defs/feature" }
+          "items": { "$ref": "#/$defs/issue" }
         }
       }
     },
-    "feature": {
+    "issue": {
       "type": "object",
-      "required": ["id", "title", "ownerUserIds", "tasks"],
+      "required": ["id", "title", "ownerUserIds"],
       "additionalProperties": false,
       "properties": {
         "id": { "type": "string", "pattern": "^[A-Z0-9-]+$" },
@@ -87,7 +87,6 @@
         "fields": { "$ref": "#/$defs/customFields" },
         "tasks": {
           "type": "array",
-          "minItems": 1,
           "items": { "$ref": "#/$defs/task" }
         }
       }

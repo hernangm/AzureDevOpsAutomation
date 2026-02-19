@@ -6,7 +6,7 @@
     "description": "Migrate legacy services to cloud-native architecture",
     "workItemTypes": {
       "epic": "Epic",
-      "feature": "Issue",
+      "issue": "Issue",
       "task": "Task"
     }
   },
@@ -16,7 +16,7 @@
       "title": "Platform Modernization",
       "description": "Migrate legacy services to cloud-native architecture",
       "ownerUserIds": ["hernanmarano@consilientivh.com"],
-      "features": [
+      "issues": [
         {
           "id": "FEAT-CONTAINERS",
           "title": "Containerize API Services",

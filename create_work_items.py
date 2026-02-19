@@ -2,9 +2,9 @@
 """
 Azure DevOps Work Item Automation Script
 
-Creates Epics, Features, and Tasks in Azure DevOps from a structured JSON
+Creates Epics, Issues, and Tasks in Azure DevOps from a structured JSON
 project plan file. Supports dry-run mode, duplicate detection, automatic
-parent linking, and feature-owner task assignment.
+parent linking, and issue-owner task assignment.
 
 Usage:
     python create_work_items.py -i project_plan.json --dry-run
@@ -71,13 +71,13 @@ def _load_schema(schema_path: str) -> dict:
 def get_work_item_types(metadata: dict) -> dict[str, str]:
     """Extract work item type names from metadata.
 
-    Returns a dict with keys 'epic', 'feature', 'task' mapped to the
+    Returns a dict with keys 'epic', 'issue', 'task' mapped to the
     Azure DevOps work item type names to use.
     """
     types = metadata["workItemTypes"]
     return {
         "epic": types["epic"],
-        "feature": types["feature"],
+        "issue": types["issue"],
         "task": types["task"],
     }
 
@@ -103,25 +103,25 @@ def validate_input(data: dict, schema_path: str) -> list[str]:
         if epic["id"] in seen_ids:
             errors.append(f"Duplicate ID: {epic['id']}")
         seen_ids[epic["id"]] = wit["epic"]
-        for feature in epic["features"]:
-            if feature["id"] in seen_ids:
-                errors.append(f"Duplicate ID: {feature['id']}")
-            seen_ids[feature["id"]] = wit["feature"]
-            for task in feature["tasks"]:
+        for issue in epic["issues"]:
+            if issue["id"] in seen_ids:
+                errors.append(f"Duplicate ID: {issue['id']}")
+            seen_ids[issue["id"]] = wit["issue"]
+            for task in issue["tasks"]:
                 if task["id"] in seen_ids:
                     errors.append(f"Duplicate ID: {task['id']}")
                 seen_ids[task["id"]] = wit["task"]
 
     # Enforce assignment strategy contract
-    strategy = data["metadata"].get("assignmentStrategy", "feature-owner")
-    if strategy == "feature-owner":
+    strategy = data["metadata"].get("assignmentStrategy", "issue-owner")
+    if strategy == "issue-owner":
         for epic in data["epics"]:
-            for feature in epic["features"]:
-                for task in feature["tasks"]:
+            for issue in epic["issues"]:
+                for task in issue["tasks"]:
                     if "assignedTo" in task:
                         errors.append(
                             f'[{task["id"]}] task.assignedTo is not allowed '
-                            f'when assignmentStrategy is "feature-owner"'
+                            f'when assignmentStrategy is "issue-owner"'
                         )
 
     return errors
@@ -408,9 +408,9 @@ def process_epics(
     skip_duplicate_check: bool,
     wit: dict[str, str],
 ) -> Summary:
-    """Process the full Epic -> Feature -> Task tree.
+    """Process the full Epic -> Issue -> Task tree.
 
-    ``wit`` maps logical roles ('epic', 'feature', 'task') to the
+    ``wit`` maps logical roles ('epic', 'issue', 'task') to the
     Azure DevOps work item type names to use.
     """
 
@@ -458,63 +458,63 @@ def process_epics(
                 summary.record_created(epic_id_local, epic_title, epic_ado_id, url)
             except (AzureDevOpsError, requests.RequestException) as exc:
                 summary.record_failed(epic_id_local, epic_title, str(exc))
-                continue  # Skip features under this epic
+                continue  # Skip issues under this epic
 
-        # Process features
-        for feature in epic["features"]:
-            feat_id_local = feature["id"]
-            feat_title = feature["title"]
-            feat_desc = feature.get("description")
-            feat_fields = feature.get("fields")
-            owner = feature["ownerUserIds"][0]  # feature-owner: first email
+        # Process issues
+        for issue in epic["issues"]:
+            issue_id_local = issue["id"]
+            issue_title = issue["title"]
+            issue_desc = issue.get("description")
+            issue_fields = issue.get("fields")
+            owner = issue["ownerUserIds"][0]  # issue-owner: first email
 
-            logger.info("  %s: [%s] %s", wit["feature"], feat_id_local, feat_title)
+            logger.info("  %s: [%s] %s", wit["issue"], issue_id_local, issue_title)
 
-            feat_ado_id = None
+            issue_ado_id = None
 
             if not skip_duplicate_check and not dry_run:
                 try:
-                    feat_ado_id = client.find_existing_work_item(
-                        feat_title, wit["feature"]
+                    issue_ado_id = client.find_existing_work_item(
+                        issue_title, wit["issue"]
                     )
                 except (AzureDevOpsError, requests.RequestException) as exc:
-                    summary.record_failed(feat_id_local, feat_title, str(exc))
+                    summary.record_failed(issue_id_local, issue_title, str(exc))
                     continue
 
-            if feat_ado_id is not None:
-                summary.record_skipped(feat_id_local, feat_title, feat_ado_id)
+            if issue_ado_id is not None:
+                summary.record_skipped(issue_id_local, issue_title, issue_ado_id)
             elif dry_run:
                 dry_counter += 1
                 summary.record_dry_run(
-                    feat_id_local,
-                    feat_title,
-                    wit["feature"],
+                    issue_id_local,
+                    issue_title,
+                    wit["issue"],
                     owner,
                     f"{wit['epic']} [{epic_id_local}]",
                 )
             else:
                 try:
                     result = client.create_work_item(
-                        wit["feature"],
-                        feat_title,
-                        description=feat_desc,
+                        wit["issue"],
+                        issue_title,
+                        description=issue_desc,
                         assigned_to=owner,
                         parent_id=epic_ado_id,
-                        custom_fields=feat_fields,
+                        custom_fields=issue_fields,
                     )
-                    feat_ado_id = result["id"]
+                    issue_ado_id = result["id"]
                     url = _get_work_item_url(
-                        config["org_url"], config["project"], feat_ado_id
+                        config["org_url"], config["project"], issue_ado_id
                     )
                     summary.record_created(
-                        feat_id_local, feat_title, feat_ado_id, url
+                        issue_id_local, issue_title, issue_ado_id, url
                     )
                 except (AzureDevOpsError, requests.RequestException) as exc:
-                    summary.record_failed(feat_id_local, feat_title, str(exc))
-                    continue  # Skip tasks under this feature
+                    summary.record_failed(issue_id_local, issue_title, str(exc))
+                    continue  # Skip tasks under this issue
 
             # Process tasks
-            for task in feature["tasks"]:
+            for task in issue["tasks"]:
                 task_id_local = task["id"]
                 task_title = task["title"]
                 task_desc = task.get("description")
@@ -522,7 +522,7 @@ def process_epics(
                 task_owner = (
                     task["ownerUserIds"][0]
                     if "ownerUserIds" in task
-                    else owner  # feature-owner strategy: inherit from feature
+                    else owner  # issue-owner strategy: inherit from issue
                 )
 
                 logger.info("    %s: [%s] %s", wit["task"], task_id_local, task_title)
@@ -549,7 +549,7 @@ def process_epics(
                         task_title,
                         wit["task"],
                         task_owner,
-                        f"{wit['feature']} [{feat_id_local}]",
+                        f"{wit['issue']} [{issue_id_local}]",
                     )
                 else:
                     try:
@@ -558,7 +558,7 @@ def process_epics(
                             task_title,
                             description=task_desc,
                             assigned_to=task_owner,
-                            parent_id=feat_ado_id,
+                            parent_id=issue_ado_id,
                             custom_fields=task_fields,
                         )
                         task_ado_id = result["id"]
@@ -645,13 +645,13 @@ def main():
     logger.info("Loading input from %s ...", args.input)
     data = load_and_validate_input(args.input, args.schema)
     logger.info(
-        "Validated: %d epic(s), %d feature(s), %d task(s)",
+        "Validated: %d epic(s), %d issue(s), %d task(s)",
         len(data["epics"]),
-        sum(len(e["features"]) for e in data["epics"]),
+        sum(len(e["issues"]) for e in data["epics"]),
         sum(
             len(t["tasks"])
             for e in data["epics"]
-            for t in e["features"]
+            for t in e["issues"]
         ),
     )
 
