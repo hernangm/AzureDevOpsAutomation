@@ -301,9 +301,15 @@ class AzureDevOpsClient:
                 }
             )
 
+        # Bypass rules when setting System.State to allow non-initial states
+        bypass = (
+            "&bypassRules=true"
+            if custom_fields and "System.State" in custom_fields
+            else ""
+        )
         url = (
             f"{self.org_url}/{self.project}/_apis/wit/workitems"
-            f"/${work_item_type}?api-version={self.API_VERSION}"
+            f"/${work_item_type}?api-version={self.API_VERSION}{bypass}"
         )
 
         logger.debug("POST %s\n%s", url, json.dumps(patch_doc, indent=2))
