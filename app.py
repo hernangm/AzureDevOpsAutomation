@@ -91,8 +91,9 @@ for epic in data["epics"]:
         if epic.get("description"):
             st.caption(epic["description"])
         for issue in epic["issues"]:
-            owner = issue["ownerUserIds"][0]
-            st.markdown(f"**{wit['issue']}:** {issue['title']}  \n*Owner:* `{owner}`")
+            owner = issue.get("ownerUserIds", [None])[0] if issue.get("ownerUserIds") else None
+            owner_text = f"  \n*Owner:* `{owner}`" if owner else ""
+            st.markdown(f"**{wit['issue']}:** {issue['title']}{owner_text}")
             if issue.get("description"):
                 st.caption(issue["description"])
             for task in issue["tasks"]:

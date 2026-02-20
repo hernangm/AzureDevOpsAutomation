@@ -466,7 +466,7 @@ def process_epics(
             issue_title = issue["title"]
             issue_desc = issue.get("description")
             issue_fields = issue.get("fields")
-            owner = issue["ownerUserIds"][0]  # issue-owner: first email
+            owner = issue["ownerUserIds"][0] if issue.get("ownerUserIds") else None
 
             logger.info("  %s: [%s] %s", wit["issue"], issue_id_local, issue_title)
 
