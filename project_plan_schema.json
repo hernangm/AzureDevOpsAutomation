@@ -73,7 +73,7 @@
     },
     "issue": {
       "type": "object",
-      "required": ["id", "title", "ownerUserIds"],
+      "required": ["id", "title"],
       "additionalProperties": false,
       "properties": {
         "id": { "type": "string", "pattern": "^[A-Z0-9-]+$" },
