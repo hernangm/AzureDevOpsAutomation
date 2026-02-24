@@ -107,7 +107,7 @@ def validate_input(data: dict, schema_path: str) -> list[str]:
             if issue["id"] in seen_ids:
                 errors.append(f"Duplicate ID: {issue['id']}")
             seen_ids[issue["id"]] = wit["issue"]
-            for task in issue["tasks"]:
+            for task in issue.get("tasks", []):
                 if task["id"] in seen_ids:
                     errors.append(f"Duplicate ID: {task['id']}")
                 seen_ids[task["id"]] = wit["task"]
@@ -117,7 +117,7 @@ def validate_input(data: dict, schema_path: str) -> list[str]:
     if strategy == "issue-owner":
         for epic in data["epics"]:
             for issue in epic["issues"]:
-                for task in issue["tasks"]:
+                for task in issue.get("tasks", []):
                     if "assignedTo" in task:
                         errors.append(
                             f'[{task["id"]}] task.assignedTo is not allowed '
@@ -520,7 +520,7 @@ def process_epics(
                     continue  # Skip tasks under this issue
 
             # Process tasks
-            for task in issue["tasks"]:
+            for task in issue.get("tasks", []):
                 task_id_local = task["id"]
                 task_title = task["title"]
                 task_desc = task.get("description")
