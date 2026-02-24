@@ -81,7 +81,7 @@ if meta.get("description"):
 
 epic_count = len(data["epics"])
 issue_count = sum(len(e["issues"]) for e in data["epics"])
-task_count = sum(len(t["tasks"]) for e in data["epics"] for t in e["issues"])
+task_count = sum(len(t.get("tasks", [])) for e in data["epics"] for t in e["issues"])
 st.markdown(f"**{epic_count}** {wit['epic']}(s), **{issue_count}** {wit['issue']}(s), **{task_count}** {wit['task']}(s)")
 
 for epic in data["epics"]:
@@ -96,7 +96,7 @@ for epic in data["epics"]:
             st.markdown(f"**{wit['issue']}:** {issue['title']}{owner_text}")
             if issue.get("description"):
                 st.caption(issue["description"])
-            for task in issue["tasks"]:
+            for task in issue.get("tasks", []):
                 st.markdown(f"- {task['title']}")
 
 st.divider()
